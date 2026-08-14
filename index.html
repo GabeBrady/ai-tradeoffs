@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context. Intelligence. Specificity.</title>
+<meta property="og:title" content="Context. Intelligence. Specificity.">
+<meta property="og:description" content="Pick your dial.">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --fg: #f5f5f5;
+    --dim: #6b6b6b;
+    --channel-bg: #1a1a1a;
+    --channel-grad-top: #161616;
+    --channel-grad-bottom: #202020;
+    --channel-border: #2e2e2e;
+    --fill: #f5f5f5;
+    --thumb: #0a0a0a;
+    --thumb-color: #f5f5f5;
+    --thumb-shadow-dark: rgba(0, 0, 0, 0.35);
+    --thumb-shadow-light: rgba(255, 255, 255, 0.5);
+    --thumb-ring: rgba(0, 0, 0, 0.18);
+    --shadow-dark: rgba(0, 0, 0, 0.7);
+    --shadow-light: rgba(255, 255, 255, 0.05);
+    --emboss-hi: rgba(255, 255, 255, 0.06);
+    --emboss-lo: rgba(0, 0, 0, 0.8);
+    --elevate: rgba(0, 0, 0, 0.5);
+  }
+  [data-theme="light"] {
+    --bg: #ffffff;
+    --fg: #0a0a0a;
+    --dim: #8a8a8a;
+    --channel-bg: #f0f0f0;
+    --channel-grad-top: #e6e6e6;
+    --channel-grad-bottom: #fafafa;
+    --channel-border: #dcdcdc;
+    --fill: #0a0a0a;
+    --thumb: #ffffff;
+    --shadow-dark: rgba(0, 0, 0, 0.18);
+    --shadow-light: rgba(255, 255, 255, 0.9);
+    --emboss-hi: rgba(255, 255, 255, 0.9);
+    --emboss-lo: rgba(0, 0, 0, 0.12);
+    --elevate: rgba(0, 0, 0, 0.15);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8vh 6vw 4vh;
+    position: relative;
+  }
+  .theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(180deg, var(--channel-grad-top), var(--channel-grad-bottom));
+    border: 1px solid var(--channel-border);
+    color: var(--dim);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow:
+      0 1px 0 var(--shadow-light) inset,
+      0 2px 4px var(--shadow-dark),
+      0 1px 1px var(--shadow-dark);
+    transition: color 0.15s ease, border-color 0.15s ease, box-shadow 0.12s ease, transform 0.12s ease;
+  }
+  .theme-toggle:hover {
+    color: var(--fg);
+    border-color: var(--dim);
+  }
+  .theme-toggle:active {
+    transform: translateY(1px);
+    box-shadow:
+      0 1px 2px var(--shadow-dark) inset,
+      0 1px 0 var(--shadow-light);
+  }
+  .wrap {
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    flex-direction: column;
+    gap: 9vh;
+  }
+  .row {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .label {
+    font-size: clamp(28px, 6vw, 46px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    line-height: 1;
+    text-shadow: 0 1px 0 var(--emboss-hi), 0 -1px 1px var(--emboss-lo);
+    transition: text-shadow 0.2s ease;
+  }
+  .channel {
+    position: relative;
+    width: 100%;
+    height: 46px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--channel-grad-top), var(--channel-grad-bottom));
+    border: 1px solid var(--channel-border);
+    box-shadow:
+      0 1px 0 var(--shadow-light),
+      0 4px 10px var(--elevate);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+  }
+  .channel .fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    background: var(--fill);
+    opacity: 0.16;
+    pointer-events: none;
+    transition: opacity 0.25s ease, filter 0.25s ease;
+  }
+  .channel .groove {
+    /* The groove shadow lives on its own layer, painted above the fill
+       (and the thumb) rather than as part of the channel's background.
+       That way the exact same shadow reads over both the grey fill and
+       the bare black track — black and grey stay on one physical plane,
+       only differing in tint, instead of the fill looking like a raised
+       layer that washes the shadow out as it gets more opaque. */
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow:
+      inset 0 2px 4px var(--shadow-dark),
+      inset 0 -1px 0 var(--shadow-light);
+    transition: box-shadow 0.2s ease;
+  }
+  .channel.pressed .groove {
+    box-shadow:
+      inset 0 3px 6px var(--shadow-dark),
+      inset 0 -1px 0 var(--shadow-light);
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    z-index: 3;
+    width: 100%;
+    height: 44px;
+    background: transparent;
+    outline: none;
+    margin: 0;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 44px;
+    background: transparent;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 42px;
+    height: 44px;
+    margin-top: 0;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 50%,
+        rgba(0,0,0,0.05) 0%,
+        rgba(0,0,0,0.08) 48%,
+        rgba(0,0,0,0.17) 74%,
+        rgba(0,0,0,0.05) 87%,
+        rgba(255,255,255,0.6) 95%,
+        rgba(255,255,255,0.2) 100%),
+      var(--thumb-color);
+    border: none;
+    cursor: grab;
+    box-shadow:
+      inset 0 -2px 0 var(--thumb-shadow-dark),
+      inset 0 1px 0 var(--thumb-shadow-light);
+    transition: box-shadow 0.1s ease, transform 0.1s ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    box-shadow:
+      inset 0 -2px 0 var(--thumb-shadow-dark),
+      inset 0 1px 0 var(--thumb-shadow-light),
+      inset 0 0 0 2px var(--thumb-ring);
+  }
+  input[type="range"]::-webkit-slider-thumb:active {
+    cursor: grabbing;
+    transform: scale(0.97);
+    box-shadow: inset 0 -1px 0 var(--thumb-shadow-dark);
+  }
+  input[type="range"]::-moz-range-track {
+    height: 44px;
+    background: transparent;
+    border: none;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 42px;
+    height: 44px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 50%,
+        rgba(0,0,0,0.05) 0%,
+        rgba(0,0,0,0.08) 48%,
+        rgba(0,0,0,0.17) 74%,
+        rgba(0,0,0,0.05) 87%,
+        rgba(255,255,255,0.6) 95%,
+        rgba(255,255,255,0.2) 100%),
+      var(--thumb-color);
+    border: none;
+    cursor: grab;
+    box-shadow:
+      inset 0 -2px 0 var(--thumb-shadow-dark),
+      inset 0 1px 0 var(--thumb-shadow-light);
+    transition: box-shadow 0.1s ease, transform 0.1s ease;
+  }
+  input[type="range"]:active::-moz-range-thumb {
+    transform: scale(0.97);
+    box-shadow: inset 0 -1px 0 var(--thumb-shadow-dark);
+  }
+  .tagline {
+    text-align: center;
+    font-size: 18px;
+    color: var(--dim);
+    min-height: 26px;
+    text-shadow: 0 1px 0 var(--emboss-hi);
+    transition: opacity 0.25s ease, text-shadow 0.2s ease;
+  }
+  footer {
+    margin-top: 6vh;
+    text-align: center;
+    font-size: 12px;
+    color: var(--channel-border);
+    line-height: 1.8;
+  }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" type="button">Light</button>
+
+  <div class="wrap">
+
+    <div class="row">
+      <div class="label">Context</div>
+      <div class="channel">
+        <div class="fill" id="f-context"></div>
+        <input type="range" id="context" min="0" max="100" value="33" step="1">
+        <div class="groove"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="label">Intelligence</div>
+      <div class="channel">
+        <div class="fill" id="f-intelligence"></div>
+        <input type="range" id="intelligence" min="0" max="100" value="33" step="1">
+        <div class="groove"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="label">Specificity</div>
+      <div class="channel">
+        <div class="fill" id="f-specificity"></div>
+        <input type="range" id="specificity" min="0" max="100" value="34" step="1">
+        <div class="groove"></div>
+      </div>
+    </div>
+
+    <div class="tagline" id="tagline">Move one. Watch the others.</div>
+  </div>
+
+  <footer>
+    <div>made with &#9829; by <a href="https://gbrady.com" target="_blank" rel="noopener">gbrady.com</a></div>
+    <div>inspired by <a href="https://fastgood.cheap" target="_blank" rel="noopener">fastgood.cheap</a></div>
+  </footer>
+
+<script>
+(function () {
+  var TOTAL = 100;
+  var keys = ["context", "intelligence", "specificity"];
+  var sliders = {};
+  var fills = {};
+  var values = { context: 33, intelligence: 33, specificity: 34 };
+
+  keys.forEach(function (k) {
+    sliders[k] = document.getElementById(k);
+    fills[k] = document.getElementById("f-" + k);
+  });
+
+  var THUMB = 42; // must match the thumb's width in CSS
+
+  function render() {
+    keys.forEach(function (k) {
+      sliders[k].value = values[k];
+      var t = values[k] / 100;
+      // The native thumb's center travels across (trackWidth - THUMB), offset
+      // by THUMB/2, not across the full 0-100% width. Match the fill's edge
+      // to that same math so the grey/black divide never drifts from the
+      // thumb's actual center as it moves.
+      fills[k].style.width = "calc((100% - " + THUMB + "px) * " + t + " + " + (THUMB / 2) + "px)";
+      // grayscale-only "glow": the fill brightens and grows more opaque
+      // as a factor climbs, so it visibly "lights up" without ever adding color.
+      fills[k].style.opacity = (0.12 + t * 0.5).toFixed(2);
+      fills[k].style.filter = "brightness(" + (0.9 + t * 0.5).toFixed(2) + ")";
+    });
+  }
+
+  function redistribute(changed, newVal) {
+    newVal = Math.max(0, Math.min(100, newVal));
+    var others = keys.filter(function (k) { return k !== changed; });
+    var remaining = TOTAL - newVal;
+
+    var a = others[0], b = others[1];
+    var sumOthers = values[a] + values[b];
+    var va, vb;
+
+    if (remaining <= 0) {
+      va = 0;
+      vb = 0;
+    } else if (sumOthers <= 0.001) {
+      va = remaining / 2;
+      vb = remaining / 2;
+    } else {
+      va = remaining * (values[a] / sumOthers);
+      vb = remaining - va;
+    }
+
+    if (va > 100) { vb += (va - 100); va = 100; }
+    if (vb > 100) { va += (vb - 100); vb = 100; }
+    if (va < 0) { vb += va; va = 0; }
+    if (vb < 0) { va += vb; vb = 0; }
+
+    values[changed] = newVal;
+    values[a] = Math.max(0, Math.min(100, va));
+    values[b] = Math.max(0, Math.min(100, vb));
+  }
+
+  var taglines = {
+    context: [
+      "Provide <em>all</em> the context. They barely have to think.",
+      "More context, less guessing required elsewhere.",
+      "You did the reading so they don't have to."
+    ],
+    intelligence: [
+      "More intelligence. Vague instructions. Still works.",
+      "Let them figure out what you meant.",
+      "Reasoning fills in what you left out."
+    ],
+    specificity: [
+      "Say exactly what you want. Everything else gets easier.",
+      "A precise goal needs less of everything else.",
+      "Nail the ask. The rest can be&hellip;"
+    ],
+    balanced: [
+      "Balanced. Not maxed, not starved.",
+      "A bit of everything, a lot of nothing.",
+      "Spread thin on purpose."
+    ]
+  };
+
+  var lastPick = null;
+  function updateTagline() {
+    var max = keys.reduce(function (m, k) { return values[k] > values[m] ? k : m; }, keys[0]);
+    var min = keys.reduce(function (m, k) { return values[k] < values[m] ? k : m; }, keys[0]);
+    var pool;
+    if (values[max] - values[min] < 15) {
+      pool = taglines.balanced;
+    } else {
+      pool = taglines[max];
+    }
+    var pick = pool[Math.floor(Math.random() * pool.length)];
+    if (pick === lastPick && pool.length > 1) {
+      pick = pool[(pool.indexOf(pick) + 1) % pool.length];
+    }
+    lastPick = pick;
+    var el = document.getElementById("tagline");
+    el.style.opacity = 0;
+    setTimeout(function () {
+      el.innerHTML = pick;
+      el.style.opacity = 1;
+    }, 150);
+  }
+
+  keys.forEach(function (k) {
+    var channel = sliders[k].closest(".channel");
+    sliders[k].addEventListener("input", function () {
+      redistribute(k, parseFloat(sliders[k].value));
+      render();
+    });
+    sliders[k].addEventListener("change", updateTagline);
+    sliders[k].addEventListener("pointerdown", function () {
+      channel.classList.add("pressed");
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (evt) {
+      sliders[k].addEventListener(evt, function () {
+        channel.classList.remove("pressed");
+      });
+    });
+  });
+
+  render();
+
+  var themeBtn = document.getElementById("theme-toggle");
+  var isLight = false;
+  themeBtn.addEventListener("click", function () {
+    isLight = !isLight;
+    document.documentElement.setAttribute("data-theme", isLight ? "light" : "dark");
+    themeBtn.textContent = isLight ? "Dark" : "Light";
+  });
+})();
+</script>
+</body>
+</html>
